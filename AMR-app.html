@@ -1,0 +1,151 @@
+<!DOCTYPE html>  
+<html lang="zh-Hant">  
+<head>  
+  <meta charset="UTF-8">  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+  <title>AMR Terminal App (API Spy Mode)</title>  
+  <script src="https://cdn.tailwindcss.com"></script>  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">  
+  <style>.touch-btn { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }</style>  
+</head>  
+<body class="bg-gray-100 min-h-screen p-4 text-gray-800">  
+  
+  <div class="max-w-md mx-auto space-y-4">  
+    <!-- Header -->  
+    <div class="bg-blue-600 text-white p-5 rounded-2xl shadow-md flex justify-between items-center">  
+      <div>  
+        <h1 class="text-xl font-black">AMR Terminal App</h1>  
+        <p class="text-xs text-blue-100">AutoXing API Spy & Auto-Sync</p>  
+      </div>  
+      <span class="bg-blue-800 text-blue-100 text-xs px-3 py-1 rounded-full font-mono font-bold" id="amrIdDisplay">WHS001</span>  
+    </div>  
+  
+    <!-- API Spy 狀態卡片 -->  
+    <div class="bg-white p-5 rounded-2xl shadow-sm border space-y-4">  
+      <div class="flex justify-between items-center bg-blue-50 border border-blue-100 p-3 rounded-xl text-xs text-blue-800">  
+        <span class="font-bold flex items-center gap-1.5">  
+          <i class="fa-solid fa-satellite-dish animate-pulse text-blue-600"></i> AutoXing API 雲端 Spy 監控中  
+        </span>  
+        <span id="spyStatus" class="bg-blue-200 text-blue-900 px-2 py-0.5 rounded font-mono font-bold">Active</span>  
+      </div>  
+  
+      <div>  
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">  
+          AutoXing 自動同步目的地 (Destination)  
+        </label>  
+        <input type="text" id="spyDestination" readonly value="正在掃描機械人當前任務..."   
+               class="w-full bg-gray-50 border border-gray-300 text-gray-800 text-sm font-bold rounded-xl p-3.5 font-mono">  
+      </div>  
+  
+      <div>  
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">  
+          溫層 / 貨品類別 (Goods Type)  
+        </label>  
+        <select id="goodsType" class="w-full bg-gray-50 border p-3 rounded-xl font-bold text-sm">  
+          <option value="Chilled">Chilled (冷藏貨)</option>  
+          <option value="Frozen">Frozen (冷凍貨)</option>  
+          <option value="Ambient">Ambient (常溫貨)</option>  
+        </select>  
+      </div>  
+  
+      <button onclick="startSpySyncDelivery()" class="touch-btn w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition flex justify-center items-center gap-2 text-base">  
+        <i class="fa-solid fa-radar"></i> 啟動任務自動追蹤  
+      </button>  
+    </div>  
+  
+    <!-- 任務執行控制板 -->  
+    <div id="execCard" class="hidden bg-gray-900 text-white p-5 rounded-2xl shadow-lg space-y-3">  
+      <div class="flex justify-between items-center border-b border-gray-800 pb-2">  
+        <span class="text-xs text-blue-400 font-bold uppercase">目前追蹤目的: <span id="activeBu" class="text-white">--</span></span>  
+        <span class="text-xs bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 px-2.5 py-1 rounded font-mono font-bold" id="taskState">TRAVELLING</span>  
+      </div>  
+  
+      <div class="grid grid-cols-2 gap-2 pt-1">  
+        <button onclick="triggerArrived()" class="touch-btn bg-emerald-600 hover:bg-emerald-700 font-bold py-3 rounded-xl text-xs flex justify-center items-center gap-1.5 shadow">  
+          <i class="fa-solid fa-location-dot"></i> 模擬 ARRIVED 到達  
+        </button>  
+        <button onclick="triggerFailure()" class="touch-btn bg-rose-600 hover:bg-rose-700 font-bold py-3 rounded-xl text-xs flex justify-center items-center gap-1.5 shadow">  
+          <i class="fa-solid fa-triangle-exclamation"></i> 5分鐘 任務失敗  
+        </button>  
+      </div>  
+    </div>  
+  </div>  
+  
+  <script>  
+    const API_CONFIG = {  
+      baseUrl: "https://apiglobal.autoxing.com",  
+      appCode: "e63f72531dd14ea29959730861cb10"  
+    };  
+  
+    // 頁面載入時自動在背景 "Spy" 雲端任務  
+    window.onload = function() {  
+      pollAutoXingTask();  
+      setInterval(pollAutoXingTask, 4000); // 每 4 秒自動同步一次  
+    };  
+  
+    function pollAutoXingTask() {  
+      // 這裡模擬透過 API 抓取 AutoXing 當前任務站點  
+      // 實際對接時會使用 fetch(`${API_CONFIG.baseUrl}/...`, { headers: { AppCode: API_CONFIG.appCode } })  
+        
+      // 模擬從雲端抓回來的數據 (例如目前機械人正在去 RC Cafe)  
+      const simulatedCloudDestination = "RC Cafe";   
+        
+      const destField = document.getElementById('spyDestination');  
+      if (destField && destField.value.includes("正在掃描")) {  
+        destField.value = `${simulatedCloudDestination} (API Auto-Synced)`;  
+      }  
+    }  
+  
+    function startSpySyncDelivery() {  
+      const dest = document.getElementById('spyDestination').value.replace(" (API Auto-Synced)", "");  
+      const goods = document.getElementById('goodsType').value;  
+        
+      const payload = {  
+        amr: "WHS001",  
+        targetBu: dest,  
+        goodsType: goods,  
+        status: "TRAVELLING",  
+        timestamp: new Date().toISOString()  
+      };  
+  
+      localStorage.setItem('amr_event_broadcast', JSON.stringify(payload));  
+        
+      document.getElementById('execCard').classList.remove('hidden');  
+      document.getElementById('activeBu').innerText = `${dest} (${goods})`;  
+      document.getElementById('taskState').innerText = "TRAVELLING (Spy 監控中)";  
+    }  
+  
+    function triggerArrived() {  
+      const dest = document.getElementById('spyDestination').value.replace(" (API Auto-Synced)", "");  
+      const goods = document.getElementById('goodsType').value;  
+  
+      const payload = {  
+        amr: "WHS001",  
+        targetBu: dest,  
+        goodsType: goods,  
+        status: "ARRIVED",  
+        timestamp: new Date().toISOString()  
+      };  
+  
+      localStorage.setItem('amr_event_broadcast', JSON.stringify(payload));  
+      document.getElementById('taskState').innerText = "ARRIVED (已通知 BU App)";  
+    }  
+  
+    function triggerFailure() {  
+      const dest = document.getElementById('spyDestination').value.replace(" (API Auto-Synced)", "");  
+      const goods = document.getElementById('goodsType').value;  
+  
+      const payload = {  
+        amr: "WHS001",  
+        targetBu: dest,  
+        goodsType: goods,  
+        status: "FAILED_5MIN",  
+        timestamp: new Date().toISOString()  
+      };  
+  
+      localStorage.setItem('amr_event_broadcast', JSON.stringify(payload));  
+      alert("⚠️ 任務失敗超過 5 分鐘！已發送 Escalation 告警至 Warehouse Control Tower。");  
+    }  
+  </script>  
+</body>  
+</html>  
